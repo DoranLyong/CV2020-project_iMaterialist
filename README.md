@@ -1,6 +1,11 @@
 # Imaterialist for CV project 
 This project repo is for in computer vision project of the first semester in 2020.
 
+### Data Analysis Tutorial 
+* ```Tutorial.ipynb```
+    > [execution with colab](https://colab.research.google.com/github/DoranLyong/CV2020-project_iMaterialist/blob/master/Tutorial.ipynb)
+
+
 
 *** 
 ### Reference 
