@@ -9,16 +9,16 @@ from torchvision import datasets, transforms
 
 
 
-class Fashion2020dataset(torch.utils.data.Dataset):
-    def __init__(self, data_root, transforms, df_csv:str ):  # _to load and preprocess for the dataset. 
+class Fashion2020dataset(object):
+    def __init__(self, root, transforms ):  # _to load and preprocess for the dataset. 
         
         super().__init__()
-        self.data_root = data_root         
+        self.root = root       
         self.transforms = transforms 
-        self.imgs = list(sorted(os.listdir(os.path.join(data_root, "train"))))
+        self.imgs = list(sorted(os.listdir(os.path.join(root , "train"))))
         
         # _Start: read .csv with pandas for DataFormat description 
-        self.df_csv = pd.read_csv(os.path.join(data_root, df_csv))  
+        self.df_csv = pd.read_csv(os.path.join(root, "train.csv"))  
         self.image_ids = self.df_csv["ImageId"].unique() # to get all image names
         
         
@@ -30,7 +30,7 @@ class Fashion2020dataset(torch.utils.data.Dataset):
         
         print(f"Image loading: {imgID}")
         
-        pil_im = Image.open("{0}/train/{1}.jpg".format(self.data_root, str(imgID)))
+        pil_im = Image.open("{0}/train/{1}.jpg".format(self.root, str(imgID)))
         img = np.asarray(pil_im)
         
         images_meta = {} # 
