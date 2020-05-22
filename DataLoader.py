@@ -47,29 +47,29 @@ class Fashion2020dataset(torch.utils.data.Dataset):
         shape = images_meta.get("shape")  # _get via key of dict() 
         encoded_pixels = list(images_meta.get("encoded_pixels"))
         class_ids = list(images_meta.get("class_ids"))
-        print(class_ids)
+        #print("class_ids: ",class_ids)
             
         # _Initialze an empty array with the same shape as the image 
         height, width = shape[:2] 
         mask = np.zeros((height, width)).reshape(-1)
         # (-1) 'The new shape should be compatible with the original shape'
             
-        pbarLoad = tqdm(zip(encoded_pixels, class_ids))
-        for segment, (pixel_str, class_id) in enumerate(pbarLoad):
-            pbarLoad.set_description(f"Loading encoded pixels...: {segment}" )
+        
+        for segment, (pixel_str, class_id) in tqdm(enumerate(zip(encoded_pixels, class_ids)), ascii=True, desc="Processing encoded pixels... "):
+            
             splitted_pixels = list(map(int, pixel_str.split())) #split the pixels string
             pixel_starts = splitted_pixels[::2] #choose every second element
             run_lengths = splitted_pixels[1::2]  #start from 1 with step size 2
                
             assert max(pixel_starts) < mask.shape[0]  
             
-            pbarDecode = tqdm(zip(pixel_starts, run_lengths))    
-            for pixel_start, run_length in pbarDecode:
-                pbarDecode.set_description(f"Decoding masks...: {pixel_start}" )
+            # _Start: decoding for mask 
+            for pixel_start, run_length in zip(pixel_starts, run_lengths):
+                
                 pixel_start = int(pixel_start) - 1
                 run_length = int(run_length)
                 mask[pixel_start:pixel_start+run_length] = 255 - class_id *4
-                         
+            # _End: decoding for mask                          
             
             mask = mask.reshape((height, width), order = 'F')
             masks.append(mask)
