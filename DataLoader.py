@@ -4,21 +4,22 @@ from PIL import Image, ImageFile
 import numpy as np 
 import pandas as pd 
 from tqdm import tqdm
+import cv2
 import torch 
 from torchvision import datasets, transforms
 
 
 
 class Fashion2020dataset(object):
-    def __init__(self, root, transforms ):  # _to load and preprocess for the dataset. 
+    def __init__(self, root, transforms, csv_path:str ):  # _to load and preprocess for the dataset. 
         
         super().__init__()
         self.root = root       
         self.transforms = transforms 
-        self.imgs = list(sorted(os.listdir(os.path.join(root , "train"))))
+        self.img_lists = list(sorted(os.listdir(os.path.join(root , "train"))))
         
         # _Start: read .csv with pandas for DataFormat description 
-        self.df_csv = pd.read_csv(os.path.join(root, "train.csv"))  
+        self.df_csv = pd.read_csv(os.path.join(root, csv_path))  
         self.image_ids = self.df_csv["ImageId"].unique() # to get all image names
         
         
@@ -43,6 +44,8 @@ class Fashion2020dataset(object):
         # _Start: create masks with decoding and bbox from them 
         masks = []     
         boxes = [] 
+        contours = [] 
+        areas = [] 
 
         shape = images_meta.get("shape")  # _get via key of dict() 
         encoded_pixels = list(images_meta.get("encoded_pixels"))
@@ -55,8 +58,8 @@ class Fashion2020dataset(object):
         # (-1) 'The new shape should be compatible with the original shape'
             
         
-        for segment, (pixel_str, class_id) in tqdm(enumerate(zip(encoded_pixels, class_ids)), ascii=True, desc="Processing encoded pixels... "):
-            
+#        for segment, (pixel_str, class_id) in tqdm(enumerate(zip(encoded_pixels, class_ids)), ascii=True, desc="Processing encoded pixels... "):
+        for segment, (pixel_str, class_id) in enumerate(zip(encoded_pixels, class_ids)):            
             splitted_pixels = list(map(int, pixel_str.split())) #split the pixels string
             pixel_starts = splitted_pixels[::2] #choose every second element
             run_lengths = splitted_pixels[1::2]  #start from 1 with step size 2
@@ -73,28 +76,31 @@ class Fashion2020dataset(object):
             
             mask = mask.reshape((height, width), order = 'F')
             masks.append(mask)
-            
+
+
             # _Start: get bounding box coordinates from each mask 
             pos = np.where(mask)
             xmin = np.min(pos[1])
             xmax = np.max(pos[1])
             ymin = np.min(pos[0])
             ymax = np.max(pos[0])
-            boxes.append([xmin, ymin, xmax, ymax])
+            boxes.append([int(xmin), int(ymin), int(xmax), int(ymax)])
             # _End: get bounding box coordinates from each mask 
             
             mask = np.zeros((height, width)).reshape(-1) # re-initialize 
         # _End: create masks with decoding 
         
-        
+  
         
         # _Start: convert everything into a torch.Tensor 
-        boxes = torch.as_tensor(boxes, dtype=torch.float32)
-        class_ids = torch.as_tensor(class_ids, dtype=torch.uint8)
+##        boxes = torch.as_tensor(boxes, dtype=torch.float32)
+##        class_ids = torch.as_tensor(class_ids, dtype=torch.uint8)
         masks = torch.as_tensor(masks, dtype=torch.uint8)  
-        image_id = torch.tensor([idx])
+##        image_id = torch.tensor([idx])
+
         
-        area = (boxes[:, 3] - boxes[:, 1]) * (boxes[:, 2] - boxes[:, 0])      
+##        area = (boxes[:, 3] - boxes[:, 1]) * (boxes[:, 2] - boxes[:, 0])      
+
         
         iscrowd = torch.zeros(len(class_ids,), dtype=torch.int64) # suppose all instances are not crowd
         # _End: convert everything into a torch.Tensor
@@ -104,8 +110,9 @@ class Fashion2020dataset(object):
         target["boxes"] = boxes
         target["class_ids"] = class_ids
         target["masks"] = masks
-        target["image_id"] = image_id 
-        target["area"] = area
+        target["image_id"] = imgID 
+#        target["area"] = areas
+
         target["iscrowd"] = iscrowd           
         
         
@@ -115,4 +122,8 @@ class Fashion2020dataset(object):
         return img, target
     
     def __len__(self):          # _to return the length of data samples in the dataset. 
-        return len(self.imgs)
+        return len(self.img_lists)
+
+
+
+        
