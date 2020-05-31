@@ -169,10 +169,9 @@ if __name__ == "__main__":
                              (enclosure_queue,)    )
 
     start_new_thread(generate_COCO_formatted_json(Dataloader= Dataloader,
-                             data_idx= val_idx,
+                             data_idx= train_idx,
                              json_filepath=args["val_json"]) ,
                              (enclosure_queue,)    )
-
     # _End: subthread 
 
     print("End...")
