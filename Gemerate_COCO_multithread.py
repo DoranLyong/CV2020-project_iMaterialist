@@ -1,18 +1,16 @@
 import os 
 import sys 
 import argparse
-from _thread import *
 
 from PIL import Image, ImageFile
 import numpy as np 
+import json 
 import pandas as pd 
-import json
 from pathlib import Path 
 import cv2
 from tqdm import tqdm 
-
+import threading
 from DataLoader import Fashion2020dataset
-
 
 
 
@@ -21,6 +19,11 @@ cwd = os.getcwd()
 os.chdir(cwd)
 # _End: change working directory scope 
 
+annotations = []
+images = []
+categories = []
+
+lock = threading.Lock()
 
 # _Start: argparse 
 ap = argparse.ArgumentParser()
@@ -30,16 +33,14 @@ ap.add_argument('-c', '--df-csv', type=str, default="../imaterialist-fashion-202
                  help="path to train.csv")
 ap.add_argument('-s', '--df-json', type=str, default="../imaterialist-fashion-2020-fgvc7/label_descriptions.json",
                  help="path to label_descriptions.json")
-ap.add_argument('-t', '--train-json', type=str, default="../imaterialist-fashion-2020-fgvc7/train.json",
+ap.add_argument('-t', '--train-json', type=str, default="../imaterialist-fashion-2020-fgvc7/train_2.json",
                  help="path to COCO formatted train.json")
-ap.add_argument('-v', '--val-json', type=str, default="../imaterialist-fashion-2020-fgvc7/validation.json",
+ap.add_argument('-v', '--val-json', type=str, default="../imaterialist-fashion-2020-fgvc7/validation_2.json",
                  help="path to COCO formatted validation.json")
 
 args = vars(ap.parse_args())
 print(args["df_json"])
 # _End: argparse 
-
-
 
 
 # _Start: split data into train and validation in a 9:1 ratio
@@ -88,32 +89,33 @@ def get_contour_pts(mask_img):
     return (contour, area)
 
 
-def generate_COCO_formatted_json(Dataloader:Fashion2020dataset, data_idx:list ,json_filepath:str):
-    annotations = []
-    images = []
-    categories = []
-    
-    for i, idx in tqdm(enumerate(data_idx), desc="JSON processing..."):
+def JSON_process(i:int, idx:int, Dataloader:Fashion2020dataset, json_filepath:str):
+    global annotations
+    global images 
+    global categories    
+    lock.acquire()
+
+    try: 
         img, target = Dataloader[idx]
-        
+
         image_filename = '{}.jpg'.format(target["image_id"])
 
         if len(img.shape) == 3:
             w,h, _ = img.shape
         else:
             w,h = img.shape 
-        
+
         if image_filename not in Dataloader.img_lists:
-            continue 
-            
+            pass 
+
         
         for i, mask in enumerate(target["masks"]):
-            
+
             contour, area = get_contour_pts(mask.numpy())
-            
+
             if not contour:
                 continue 
-                
+
             xmin, ymin, xmax, ymax = target["boxes"][i] 
             annotations.append({"segmentation": contour,
                                 "iscrowd": 0, 
@@ -122,20 +124,49 @@ def generate_COCO_formatted_json(Dataloader:Fashion2020dataset, data_idx:list ,j
                                 "area": area[0],
                                 "category_id": target["class_ids"][i],
                                 "id": target["image_id"] + str(i) })
-            
+
             categories.append({"supercategory":df_categories["supercategory"][target["class_ids"][i]] ,
                                "id":target["class_ids"][i],
                                "name": df_categories["name"][target["class_ids"][i]]    })
-            
-        
+
+
         images.append({"file_name" : image_filename,
                        "height": h,
                        "width" : w,
-                       "id" : target["image_id"]  })
-            
+                        "id" : target["image_id"]  })
+    finally:
+        with open(json_filepath) as file:
+            jason_add = json.load(file)
+        
+        jason_add["images"].append(images)
+        jason_add["annotations"].append(annotations)
+        jason_add["categories"].append(categories)
+        
+        with open(json_filepath, "w") as f:
+            json.dump(jason_add, f)
+        lock.release()
+    print(threading.currentThread().getName())
+
+
+
+
+
+def generate_COCO_formatted_json(Dataloader:Fashion2020dataset, data_idx:list ,json_filepath:str):
+    global annotations 
+    global images 
+    global categories
 
     with open(json_filepath, "w") as f:
-        json.dump({"images": images, "annotations": annotations, "categories": categories}, f)
+            json.dump({"images": images, "annotations": annotations, "categories": categories}, f)
+    
+    
+    for i, idx in tqdm(enumerate(data_idx), desc="JSON processing..."):
+        multi_thread = threading.Thread( target=JSON_process, args=(i, idx, Dataloader, json_filepath,) )
+        multi_thread.start() 
+
+            
+
+
         
     return
 
@@ -164,17 +195,16 @@ if __name__ == "__main__":
 
     # _Start: subthread 
 
-    start_new_thread(generate_COCO_formatted_json(Dataloader= Dataloader,
-                             data_idx= val_idx,
-                             json_filepath=args["val_json"]) ,
-                             (enclosure_queue,)    )
-
-    start_new_thread(generate_COCO_formatted_json(Dataloader= Dataloader,
-                             data_idx= train_idx,
-                             json_filepath=args["train_json"]) ,
-                             (enclosure_queue,)    )
-
-
+    generate_COCO_formatted_json(Dataloader= Dataloader,
+                                 data_idx= val_idx,
+                                 json_filepath=args["val_json"]) 
+#
+#    start_new_thread(generate_COCO_formatted_json(Dataloader= Dataloader,
+#                             data_idx= train_idx,
+#                             json_filepath=args["train_json"]) ,
+#                             (enclosure_queue,)    )
+#
+#
     # _End: subthread 
 
     print("End...")
