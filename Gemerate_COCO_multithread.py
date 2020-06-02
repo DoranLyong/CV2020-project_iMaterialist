@@ -101,9 +101,9 @@ def JSON_process(i:int, idx:int, Dataloader:Fashion2020dataset, json_filepath:st
         image_filename = '{}.jpg'.format(target["image_id"])
 
         if len(img.shape) == 3:
-            w,h, _ = img.shape
+            h,w, _ = img.shape
         else:
-            w,h = img.shape 
+            h,w = img.shape 
 
         if image_filename not in Dataloader.img_lists:
             pass 
