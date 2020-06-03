@@ -1,6 +1,8 @@
 import random 
 import os
 import sys 
+import argparse
+
 
 import numpy as np 
 import cv2
@@ -21,6 +23,17 @@ from detectron2.data import DatasetCatalog,MetadataCatalog
 from detectron2.data.datasets import register_coco_instances
 from detectron2.evaluation import COCOEvaluator, inference_on_dataset
 from detectron2.data import build_detection_test_loader
+
+# _Start: argparse 
+ap = argparse.ArgumentParser() 
+ap.add_argument('-b', '--BATCH-SIZE', type=int, default=2)
+ap.add_argument('-lr', '--BASE-LR', type=float, default=0.005)
+ap.add_argument('-it', '--ITER', type=int, default=10000 )
+args = vars(ap.parse_args())
+# _End: argparse 
+
+
+
 
 data_dir = Path("../imaterialist-fashion-2020-fgvc7")
 train_json_path = os.path.join(data_dir, 'trainFix.json')
@@ -59,13 +72,13 @@ cfg.DATALOADER.NUM_WORKERS = 2
 cfg.MODEL.WEIGHTS = model_zoo.get_checkpoint_url("COCO-InstanceSegmentation/mask_rcnn_R_50_FPN_3x.yaml")  
 
 # batch size
-cfg.SOLVER.IMS_PER_BATCH = 2
+cfg.SOLVER.IMS_PER_BATCH = args["BATCH-SIZE"]
 
 # choose a good learning rate
-cfg.SOLVER.BASE_LR = 0.0005
+cfg.SOLVER.BASE_LR = args["BASE_LR"]
 
 # We need to specify the number of iteration for training in detectron2, not the number of epochs.
-cfg.SOLVER.MAX_ITER = 10000
+cfg.SOLVER.MAX_ITER = args["ITER"]
 cfg.MODEL.ROI_HEADS.BATCH_SIZE_PER_IMAGE = 128
 
 # number of output class
