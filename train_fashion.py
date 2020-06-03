@@ -72,7 +72,7 @@ cfg.DATALOADER.NUM_WORKERS = 2
 cfg.MODEL.WEIGHTS = model_zoo.get_checkpoint_url("COCO-InstanceSegmentation/mask_rcnn_R_50_FPN_3x.yaml")  
 
 # batch size
-cfg.SOLVER.IMS_PER_BATCH = args["BATCH-SIZE"]
+cfg.SOLVER.IMS_PER_BATCH = args["BATCH_SIZE"]
 
 # choose a good learning rate
 cfg.SOLVER.BASE_LR = args["BASE_LR"]
