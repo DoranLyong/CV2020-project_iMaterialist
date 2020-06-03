@@ -2,4 +2,10 @@ data, https://drive.google.com/file/d/1grHFZ5j02l55qchADuZrrHHOdnJhVlZp/view?usp
 train,  https://drive.google.com/file/d/1f1RmImY1MfXJxR6gjjg9ZXJc5Fq5uvsz/view?usp=sharing
 val, https://drive.google.com/file/d/16_niG43N6wDL_BLE6nuSpzvQd80-fHrF/view?usp=sharing
 
+      https://drive.google.com/file/d/16_niG43N6wDL_BLE6nuSpzvQd80-fHrF/view?usp=sharing
+
+
 wget --load-cookies /tmp/cookies.txt "https://docs.google.com/uc?export=download&confirm=$(wget --quiet --save-cookies /tmp/cookies.txt --keep-session-cookies --no-check-certificate 'https://docs.google.com/uc?export=download&id=FILEID' -O- | sed -rn 's/.*confirm=([0-9A-Za-z_]+).*/\1\n/p')&id=FILEID" -O FILENAME && rm -rf /tmp/cookies.txt
+
+
+wget --no-check-certificate 'https://docs.google.com/uc?export=download&id=FILEID' -O FILENAME
